@@ -82,7 +82,7 @@ async function generateNewDomain() {
     
     try {
         // Use our proxy server instead of directly connecting to Interactsh
-        const response = await fetch('https://interactdns-server.vercel.app/api/register', {
+        const response = await fetch('https://interactdns.vercel.app/api/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -220,7 +220,7 @@ async function pollForInteractions() {
     }
     
     try {
-        const response = await fetch(`https://interactdns-server.vercel.app/api/poll?id=${interactshToken}&correlation_id=${correlationId}&server=${CONFIG.interactshServer}`);
+        const response = await fetch(`https://interactdns.vercel.app/api/poll?id=${interactshToken}&correlation_id=${correlationId}&server=${CONFIG.interactshServer}`);
         
         const data = await response.json();
         
