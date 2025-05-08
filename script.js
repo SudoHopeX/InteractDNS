@@ -78,38 +78,48 @@ function loadFromLocalStorage() {
 
 // Generate a new Interactsh domain
 async function generateNewDomain() {
-    domainElement.textContent = 'Generating domain...';
-    
-    try {
-        // Use our proxy server instead of directly connecting to Interactsh
-        const response = await fetch('https://your-proxy-server.com/api/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                server: CONFIG.interactshServer
-            })
-        });
+   domainElement.textContent = 'Generating domain...';
+   
+   try {
+    // Make a Direct request to the Interactsh API
+       const response = await fetch(`https://${CONFIG.interactshServer}/register`, {
+           method: 'POST',
+           headers: {
+               'Content-Type': 'application/json'
+           },
+           body: JSON.stringify({})
+       });
+
+    // Use a CORS proxy to bypass browser restrictions
+        // const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+        // const url = `${corsProxy}https://${CONFIG.interactshServer}/register`;
         
-        const data = await response.json();
-        
-        if (data && data.id && data.correlation_id && data.domain) {
-            interactshDomain = data.domain;
-            correlationId = data.correlation_id;
-            interactshToken = data.id;
-            
-            domainElement.textContent = interactshDomain;
-            updatePayloadExamples();
-            
-            localStorage.setItem(CONFIG.localStorage.domainKey, interactshDomain);
-            localStorage.setItem(CONFIG.localStorage.correlationIdKey, correlationId);
-            localStorage.setItem(CONFIG.localStorage.tokenKey, interactshToken);
-            
-            showNotification('New domain generated successfully');
-        } else {
-            throw new Error('Invalid response from Interactsh server');
-        }
+        // const response = await fetch(url, {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json'
+        //     },
+        //     body: JSON.stringify({})
+        // });
+       
+       const data = await response.json();
+       
+       if (data && data.id && data.correlation_id && data.domain) {
+           interactshDomain = data.domain;
+           correlationId = data.correlation_id;
+           interactshToken = data.id;
+           
+           domainElement.textContent = interactshDomain;
+           updatePayloadExamples();
+           
+           localStorage.setItem(CONFIG.localStorage.domainKey, interactshDomain);
+           localStorage.setItem(CONFIG.localStorage.correlationIdKey, correlationId);
+           localStorage.setItem(CONFIG.localStorage.tokenKey, interactshToken);
+           
+           showNotification('New domain generated successfully');
+       } else {
+           throw new Error('Invalid response from Interactsh server');
+       }
    } catch (error) {
         console.error('Error generating domain:', error);
 
@@ -215,22 +225,24 @@ function togglePolling() {
 
 // Poll for new interactions
 async function pollForInteractions() {
-    if (!interactshToken || !correlationId) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`https://your-proxy-server.com/api/poll?id=${interactshToken}&correlation_id=${correlationId}&server=${CONFIG.interactshServer}`);
-        
-        const data = await response.json();
-        
-        if (data && data.data && data.data.length > 0) {
-            processInteractions(data.data);
-        }
-    } catch (error) {
-        console.error('Error polling for interactions:', error);
-    }
- }
+   if (!interactshToken || !correlationId) {
+       return;
+   }
+   
+   try {
+       const response = await fetch(`https://${CONFIG.interactshServer}/poll?id=${interactshToken}&correlation_id=${correlationId}`, {
+           method: 'GET'
+       });
+       
+       const data = await response.json();
+       
+       if (data && data.data && data.data.length > 0) {
+           processInteractions(data.data);
+       }
+   } catch (error) {
+       console.error('Error polling for interactions:', error);
+   }
+}
 
 // Process and display interactions
 function processInteractions(interactions) {
