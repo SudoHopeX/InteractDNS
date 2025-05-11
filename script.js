@@ -12,6 +12,8 @@ const CONFIG = {
    }
 };
 
+interactshServer = 'http://192.168.202.219:5000'; 
+
 // Global variables
 let interactshDomain = '';
 let correlationId = '';
@@ -76,25 +78,28 @@ function loadFromLocalStorage() {
    }
 }
 
-// Generate a new Interactsh domain
+
+// Modified generateNewDomain function to use Python backend
 async function generateNewDomain() {
     domainElement.textContent = 'Generating domain...';
     
     try {
-        // Use our proxy server instead of directly connecting to Interactsh
-        const response = await fetch('https://interactdns.vercel.app/api/register', {
+        // Use our Python backend instead of direct Interactsh API
+        const response = await fetch(interactshServer+'/api/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                server: CONFIG.interactshServer
+                server: CONFIG.interactshServer,
+                port: 443,
+                scheme: true
             })
         });
         
         const data = await response.json();
         
-        if (data && data.id && data.correlation_id && data.domain) {
+        if (data && data.success && data.id && data.correlation_id && data.domain) {
             interactshDomain = data.domain;
             correlationId = data.correlation_id;
             interactshToken = data.id;
@@ -108,9 +113,9 @@ async function generateNewDomain() {
             
             showNotification('New domain generated successfully');
         } else {
-            throw new Error('Invalid response from Interactsh server');
+            throw new Error(data.error || 'Invalid response from server');
         }
-   } catch (error) {
+    } catch (error) {
         console.error('Error generating domain:', error);
 
         // Define available servers if not already in CONFIG
@@ -220,17 +225,20 @@ async function pollForInteractions() {
     }
     
     try {
-        const response = await fetch(`https://interactdns.vercel.app/api/poll?id=${interactshToken}&correlation_id=${correlationId}&server=${CONFIG.interactshServer}`);
+        // Use our Python backend instead of direct Interactsh API
+        const response = await fetch(`${interactshServer}/api/poll?id=${interactshToken}`, {
+            method: 'GET'
+        });
         
         const data = await response.json();
         
-        if (data && data.data && data.data.length > 0) {
+        if (data && data.success && data.data && data.data.length > 0) {
             processInteractions(data.data);
         }
     } catch (error) {
         console.error('Error polling for interactions:', error);
     }
- }
+}
 
 // Process and display interactions
 function processInteractions(interactions) {
