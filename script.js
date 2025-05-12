@@ -12,7 +12,7 @@ const CONFIG = {
    }
 };
 
-interactshServer = 'https://interactdns-server.vercel.app/'; 
+interactshServer = 'https://interactdns-server.vercel.app'; 
 
 // Global variables
 let interactshDomain = '';
