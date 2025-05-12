@@ -12,7 +12,7 @@ const CONFIG = {
    }
 };
 
-interactshServer = 'http://192.168.202.219:5000'; 
+interactshServer = 'https://interactdns-server.vercel.app/'; 
 
 // Global variables
 let interactshDomain = '';
