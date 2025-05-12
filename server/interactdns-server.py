@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 class InteractshClient:
-    def __init__(self, host="oast.pro", port=443, scheme=True, authorization=None):
+    def __init__(self, host="oast.fun", port=443, scheme=True, authorization=None, verify_ssl=False):
         self.private_key = None
         self.public_key = None
         self.secret_key = None
@@ -27,6 +27,7 @@ class InteractshClient:
         self.port = port
         self.scheme = scheme  # True for HTTPS, False for HTTP (HTTPS enforced in registration)
         self.authorization = authorization
+        self.verify_ssl = verify_ssl
         
     def generate_keys(self):
         # Generate RSA key pair
@@ -40,11 +41,18 @@ class InteractshClient:
         
     def get_public_key_pem(self):
         # Get PEM format of public key
-        public_key_pem = self.public_key.public_bytes(
+        # Update the get_public_key_pem method
+         public_key_pem = self.public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
-        ).decode('utf-8')
-        return public_key_pem
+         ).decode('utf-8')
+         
+         # Remove header/footer and newlines to match expected format
+         public_key_pem = public_key_pem.replace('-----BEGIN PUBLIC KEY-----\n', '')
+         public_key_pem = public_key_pem.replace('\n-----END PUBLIC KEY-----\n', '')
+         public_key_pem = public_key_pem.replace('\n', '')
+         
+         return public_key_pem
     
     def register_client(self):
         # Generate keys if not already generated
@@ -74,7 +82,8 @@ class InteractshClient:
             headers["Authorization"] = self.authorization
             
         try:
-            response = requests.post(url, json=register_data, headers=headers)
+            response = requests.post(url, json=register_data, headers=headers, verify=self.verify_ssl)
+
             if response.status_code == 200:
                 # Return domain and token information
                 domain = self.get_interact_domain()  # Generate domain based on new correlation ID
