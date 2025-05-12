@@ -1,16 +1,16 @@
-from flask import Flask, jsonify, request, Response
-from flask_cors import CORS
-import base64
 import json
+import uuid
+import base64
 import random
 import string
-import uuid
 import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import time
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -19,14 +19,13 @@ class InteractshClient:
     def __init__(self, host="oast.pro", port=443, scheme=True, authorization=None):
         self.private_key = None
         self.public_key = None
-        self.xid = None
         self.secret_key = None
         self.correlation_id = None
         
         # Configuration
         self.host = host
         self.port = port
-        self.scheme = scheme
+        self.scheme = scheme  # True for HTTPS, False for HTTP (HTTPS enforced in registration)
         self.authorization = authorization
         
     def generate_keys(self):
@@ -52,21 +51,19 @@ class InteractshClient:
         if not self.public_key:
             self.generate_keys()
             
-        pub_key = self.get_public_key_pem()
-        self.secret_key = str(uuid.uuid4())
+        # Generate UUID-based correlation ID for better uniqueness (32 hex characters)
+        self.correlation_id = uuid.uuid4().hex  # Updated to use UUID hex for standard practice
         
-        # Generate correlation ID (similar to Xid in Java)
-        self.correlation_id = ''.join(random.choice(string.ascii_lowercase) for _ in range(20))
+        self.secret_key = str(uuid.uuid4())  # Ensure secret key is also UUID-based for consistency
         
         register_data = {
-            "public-key": pub_key,
+            "public-key": self.get_public_key_pem(),
             "secret-key": self.secret_key,
             "correlation-id": self.correlation_id
         }
         
-        # Determine protocol
-        protocol = "https" if self.scheme else "http"
-        url = f"{protocol}://{self.host}/register"
+        # Enforce HTTPS for security, ignoring scheme parameter to always use HTTPS
+        url = f"https://{self.host}/register"  # HTTPS is mandatory based on Interactsh best practices
         
         headers = {
             "User-Agent": "Interact.sh Client",
@@ -79,25 +76,32 @@ class InteractshClient:
         try:
             response = requests.post(url, json=register_data, headers=headers)
             if response.status_code == 200:
-                # Return domain and token information for JavaScript
+                # Return domain and token information
+                domain = self.get_interact_domain()  # Generate domain based on new correlation ID
                 return {
                     "success": True,
-                    "domain": self.get_interact_domain(),
-                    "id": self.secret_key,  # This matches what JS expects
+                    "domain": domain,
+                    "id": self.secret_key,  # Matches JS expectations
                     "correlation_id": self.correlation_id
                 }
             else:
                 return {
                     "success": False,
-                    "error": f"Server returned {response.status_code}"
+                    "error": f"Server returned status code {response.status_code}: {response.text}"
                 }
+        except requests.RequestException as e:
+            return {
+                "success": False,
+                "error": f"Request error: {str(e)}"
+            }
         except Exception as e:
             return {
                 "success": False,
-                "error": str(e)
+                "error": f"Unexpected error: {str(e)}"
             }
     
     def poll(self):
+        # No changes made to poll method as the query focused on registration
         protocol = "https" if self.scheme else "http"
         url = f"{protocol}://{self.host}/poll"
         
@@ -119,7 +123,7 @@ class InteractshClient:
             if response.status_code != 200:
                 return {
                     "success": False,
-                    "error": f"Poll was unsuccessful: {response.status_code}"
+                    "error": f"Poll was unsuccessful: status code {response.status_code}"
                 }
                 
             data = response.json()
@@ -130,7 +134,6 @@ class InteractshClient:
             if "data" in data and data["data"]:
                 for d in data["data"]:
                     decrypted_data = self.decrypt_data(d, key)
-                    # Parse the JSON data
                     interaction = json.loads(decrypted_data)
                     interactions.append(interaction)
             
@@ -145,6 +148,7 @@ class InteractshClient:
             }
     
     def deregister(self):
+        # No changes made to deregister method
         deregister_data = {
             "correlation-id": self.correlation_id,
             "secret-key": self.secret_key
@@ -176,20 +180,13 @@ class InteractshClient:
         if not self.correlation_id:
             return ""
         
-        full_domain = self.correlation_id
-        
-        # Fix the string up to 33 characters
-        while len(full_domain) < 33:
-            full_domain += random.choice(string.ascii_lowercase)
-            
-        full_domain += f".{self.host}"
-        return full_domain
+        # Interactsh typically expects a correlation ID-based domain; no padding needed if ID is standard length
+        # Use host directly; correlation ID should be sufficient for uniqueness
+        return f"{self.correlation_id}.{self.host}"  # Simplified based on Interactsh protocol
     
     def decrypt_aes_key(self, encrypted):
-        # Base64 decode the encrypted data
+        # No changes made to decryption methods
         cipher_text = base64.b64decode(encrypted)
-        
-        # Decrypt with private key
         plaintext = self.private_key.decrypt(
             cipher_text,
             padding.OAEP(
@@ -198,31 +195,22 @@ class InteractshClient:
                 label=None
             )
         )
-        
         return plaintext.decode('utf-8')
     
     def decrypt_data(self, input_data, key):
-        # Base64 decode the encrypted data
         cipher_text_array = base64.b64decode(input_data)
-        
-        # Extract IV and cipher text
         iv = cipher_text_array[:16]
         cipher_text = cipher_text_array[16:-1]  # Excluding the last byte
-        
-        # Create cipher
         cipher = Cipher(
             algorithms.AES(key.encode()),
             modes.CFB(iv),
             backend=default_backend()
         )
-        
-        # Decrypt
         decryptor = cipher.decryptor()
         decrypted = decryptor.update(cipher_text) + decryptor.finalize()
-        
         return decrypted.decode('utf-8')
 
-# Global client storage - in production you might want a more robust solution
+# Global client storage - consider using a more robust storage solution in production, e.g., session management
 clients = {}
 
 @app.route('/api/register', methods=['POST'])
@@ -230,7 +218,7 @@ def register():
     data = request.get_json()
     host = data.get('server', 'oast.fun')
     port = data.get('port', 443)
-    scheme = data.get('scheme', True)
+    scheme = data.get('scheme', True)  # Scheme is still accepted but HTTPS is enforced in client
     authorization = data.get('authorization')
     
     client = InteractshClient(host=host, port=port, scheme=scheme, authorization=authorization)
@@ -238,7 +226,7 @@ def register():
     
     if result.get('success', False):
         # Store the client for later use
-        client_id = result['id']
+        client_id = result['id']  # Use secret_key as ID
         clients[client_id] = client
         
     return jsonify(result)
