@@ -1,3 +1,6 @@
+# Project stopped [ Not working as intented ]
+
+
 # InteractDNS
 
 A free and open-source Burp Collaborator alternative powered by Interactsh for detecting out-of-band interactions during security testing.
@@ -168,4 +171,5 @@ By using InteractDNS, you agree to indemnify, defend, and hold harmless the crea
 ### If you liked 👍 this tool, visit my other repos to have a look 👀 on them 📂.
 
 ## Thank You 🙏
+
 ## sudo-hope0529 (KRISHNA DWIVEDI)
